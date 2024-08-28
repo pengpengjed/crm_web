@@ -14,10 +14,15 @@ import removeConsole from "vite-plugin-remove-console";
 import { themePreprocessorPlugin } from "@pureadmin/theme";
 import { genScssMultipleScopeVars } from "../src/layout/theme";
 import { vitePluginFakeServer } from "vite-plugin-fake-server";
+/* import AutoImport from "unplugin-auto-import/vite";
+import Components from "unplugin-vue-components/vite";
+import { ElementPlusResolver } from "unplugin-vue-components/resolvers"; */
+import { createHtmlPlugin } from "vite-plugin-html";
 
 export function getPluginsList(
   VITE_CDN: boolean,
-  VITE_COMPRESSION: ViteCompression
+  VITE_COMPRESSION: ViteCompression,
+  VITE_APP_TITLE: string
 ): PluginOption[] {
   const lifecycle = process.env.npm_lifecycle_event;
   return [
@@ -25,6 +30,9 @@ export function getPluginsList(
     // jsx、tsx语法支持
     vueJsx(),
     checker({
+      overlay: {
+        initialIsOpen: false
+      },
       typescript: true,
       vueTsc: true,
       eslint: {
@@ -66,6 +74,19 @@ export function getPluginsList(
     // 打包分析
     lifecycle === "report"
       ? visualizer({ open: true, brotliSize: true, filename: "report.html" })
-      : (null as any)
+      : (null as any),
+    /* AutoImport({
+      resolvers: [ElementPlusResolver()]
+    }),
+    Components({
+      resolvers: [ElementPlusResolver()]
+    }), */
+    createHtmlPlugin({
+      inject: {
+        data: {
+          title: VITE_APP_TITLE
+        }
+      }
+    })
   ];
 }

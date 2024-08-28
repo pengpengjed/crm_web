@@ -1,7 +1,7 @@
 import { cdn } from "./cdn";
 import vue from "@vitejs/plugin-vue";
 import { pathResolve } from "./utils";
-import { viteBuildInfo } from "./info";
+// import { viteBuildInfo } from "./info";
 import svgLoader from "vite-svg-loader";
 import type { PluginOption } from "vite";
 import checker from "vite-plugin-checker";
@@ -11,20 +11,29 @@ import { configCompressPlugin } from "./compress";
 import removeNoMatch from "vite-plugin-router-warn";
 import { visualizer } from "rollup-plugin-visualizer";
 import removeConsole from "vite-plugin-remove-console";
-import { themePreprocessorPlugin } from "@pureadmin/theme";
-import { genScssMultipleScopeVars } from "../src/layout/theme";
-import { vitePluginFakeServer } from "vite-plugin-fake-server";
+// import { themePreprocessorPlugin } from "@pureadmin/theme";
+// import { genScssMultipleScopeVars } from "../src/layout/theme";
+// import { vitePluginFakeServer } from "vite-plugin-fake-server";
+import consola from "consola";
+
+import AutoImport from "unplugin-auto-import/vite";
+import Components from "unplugin-vue-components/vite";
+import { ElementPlusResolver } from "unplugin-vue-components/resolvers";
+import { createHtmlPlugin } from "vite-plugin-html";
 
 export function getPluginsList(
   VITE_CDN: boolean,
-  VITE_COMPRESSION: ViteCompression
+  VITE_COMPRESSION: ViteCompression,
+  VITE_APP_TITLE: string
 ): PluginOption[] {
   const lifecycle = process.env.npm_lifecycle_event;
-  return [
+  const plugins: PluginOption[] = [
     vue(),
-    // jsx、tsx语法支持
     vueJsx(),
     checker({
+      overlay: {
+        initialIsOpen: false
+      },
       typescript: true,
       vueTsc: true,
       eslint: {
@@ -34,38 +43,37 @@ export function getPluginsList(
       terminal: false,
       enableBuild: false
     }),
-    // 按下Command(⌘)+Shift(⇧)，然后点击页面元素会自动打开本地IDE并跳转到对应的代码位置
     Inspector(),
-    viteBuildInfo(),
-    /**
-     * 开发环境下移除非必要的vue-router动态路由警告No match found for location with path
-     * 非必要具体看 https://github.com/vuejs/router/issues/521 和 https://github.com/vuejs/router/issues/359
-     * vite-plugin-router-warn只在开发环境下启用，只处理vue-router文件并且只在服务启动或重启时运行一次，性能消耗可忽略不计
-     */
+    // viteBuildInfo(),
     removeNoMatch(),
-    // mock支持
-    vitePluginFakeServer({
+    /* vitePluginFakeServer({
       logger: false,
       include: "mock",
       infixName: false,
       enableProd: true
-    }),
-    // 自定义主题
-    themePreprocessorPlugin({
-      scss: {
-        multipleScopeVars: genScssMultipleScopeVars(),
-        extract: true
-      }
-    }),
-    // svg组件化支持
+    }), */
     svgLoader(),
     VITE_CDN ? cdn : null,
     configCompressPlugin(VITE_COMPRESSION),
-    // 线上环境删除console
     removeConsole({ external: ["src/assets/iconfont/iconfont.js"] }),
-    // 打包分析
     lifecycle === "report"
       ? visualizer({ open: true, brotliSize: true, filename: "report.html" })
-      : (null as any)
+      : null,
+    AutoImport({
+      resolvers: [ElementPlusResolver()]
+    }),
+    Components({
+      resolvers: [ElementPlusResolver()]
+    }),
+    createHtmlPlugin({
+      inject: {
+        data: {
+          title: VITE_APP_TITLE
+        }
+      }
+    })
   ];
+
+  consola.success("Loaded plugins:", plugins);
+  return plugins.filter(Boolean);
 }
